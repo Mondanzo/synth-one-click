@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+    themes: synthriderz --default;
+}
+@plugin "daisyui/theme" {
+    name: "synthriderz";
+    default: true;
+    prefersdark: false;
+    color-scheme: "light";
+    --color-base-100: #0e0c13;
+    --color-base-200: #0a070e;
+    --color-base-300: rgb(46, 39, 63);
+    --color-base-content: #ffffff;
+    --color-primary: rgb(249, 28, 132);
+    --color-primary-content: #0a070e;
+    --color-secondary: rgb(116, 48, 207);
+    --color-secondary-content: #ffffff;
+    --color-accent: oklch(89% 0.196 126.665);
+    --color-accent-content: oklch(27% 0.072 132.109);
+    --color-neutral: rgb(30, 30, 30);
+    --color-neutral-content: #ffffff;
+    --color-info: oklch(71% 0.143 215.221);
+    --color-info-content: oklch(98% 0.019 200.873);
+    --color-success: rgb(76, 175, 80);
+    --color-success-content: #0e0c13;
+    --color-warning: rgb(222, 157, 18);
+    --color-warning-content: #0e0c13;
+    --color-error: oklch(64% 0.246 16.439);
+    --color-error-content: oklch(96% 0.015 12.422);
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.25rem;
+    --size-selector: 0.1875rem;
+    --size-field: 0.1875rem;
+    --border: 0.5px;
+    --depth: 0;
+    --noise: 0;
+}
+
+@source inline("alert-{info,warning,success,error}");

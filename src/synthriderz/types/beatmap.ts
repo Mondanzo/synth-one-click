@@ -1,0 +1,41 @@
+import {User} from "./user.ts";
+import {Difficulty} from "./generic/difficulty.ts";
+
+export type Beatmap = {
+    id: number,
+    hash: string,
+    title: string,
+    artist: string,
+    mapper: string,
+    duration: string,
+    bpm: string,
+    difficulties: Difficulty[],
+    description?: string,
+    youtube_url?: string,
+    filename: string,
+    filename_original: string,
+    cover_version: number,
+    play_count: number,
+    play_count_daily: number,
+    download_count: number,
+    upvote_count: number,
+    downvote_count: number,
+    vote_diff: number,
+    sore: string,
+    rating: string,
+    published: boolean,
+    production_mode: boolean,
+    beat_saber_convert: boolean,
+    explicit: boolean,
+    ost: boolean,
+    published_at: string,
+    created_at: string,
+    updated_at: string,
+    version: number,
+    user?: User,
+    collaborators: any[], // TODO: Make collaborators object
+    download_url: string,
+    cover_url: string,
+    preview_url: string,
+    video_url: string
+}
