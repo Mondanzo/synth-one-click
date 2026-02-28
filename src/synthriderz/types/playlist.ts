@@ -1,0 +1,30 @@
+import {User} from "./user.ts";
+
+export type Playlist = {
+    id: number,
+    name: string,
+    description: string,
+    gradientTop: string,
+    gradientDown: string,
+    colorTitle: string,
+    colorTexture: string,
+    texture: number,
+    icon: number,
+    filename_original: string,
+    cover_version: number,
+    download_count: number,
+    upvote_count: number,
+    downvote_count: number,
+    vote_diff: number,
+    score: string,
+    rating: string,
+    published: boolean,
+    published_at: string,
+    created_at: string,
+    updated_at: string,
+    version: number,
+    auto_playlist_id: null,
+    user: User,
+    download_url: string,
+    cover_url: string
+}

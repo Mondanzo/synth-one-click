@@ -24,9 +24,8 @@ const isChanged = computed(() => synthFolder.value !== savedFolder.value);
 
 async function save() {
   console.log("Saving synth folder:", synthFolder.value);
-  await config?.set("synth_folder", synthFolder.value);
-  await config?.save();
-  savedFolder.value = synthFolder.value;
+  await invoke("set_synth_folder", {path: synthFolder.value});
+  savedFolder.value = await config?.get<string>("synth_folder") ?? "";
 }
 
 

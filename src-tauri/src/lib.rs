@@ -1,92 +1,32 @@
 mod download;
+mod beatmaps_cache;
+mod discover_commands;
 
-use keyvalues_parser::*;
-use std::fs;
-use std::path::Path;
-use std::str::from_utf8;
-use tauri::AppHandle;
+use serde_json::Value;
+use discover_commands::discover_synthriders;
+use discover_commands::synth_id;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[cfg(windows)]
-use windows_registry::*;
+use tauri_plugin_store::{Store, StoreExt};
+use crate::beatmaps_cache::*;
 
-const SYNTH_RIDERS_APP: &'static str = "885000";
-
-#[cfg(windows)]
-fn discover_steam() -> Option<String> {
-    println!("Discovering Steam");
-    let collection = CURRENT_USER.open("SOFTWARE\\Valve\\Steam").unwrap();
-    let synth_key = collection.get_string("SteamPath");
-    match synth_key {
-        Ok(v) => Some(v),
-        Err(_) => None,
-    }
-}
-
-#[cfg(not(windows))]
-fn discover_steam() -> Option<String> {
-    None
+struct AppState {
+    beatmaps_cache: Option<BeatmapsCache>
 }
 
 #[tauri::command]
-fn discover_synthriders() -> Option<String> {
-    let steam_path = discover_steam();
-    println!("Steam Result: {:?}", steam_path);
-    match steam_path {
-        None => None,
-        Some(steam_path) => {
-            println!("Discovered Steam Path at: {}", steam_path);
-            let path = Path::new(&steam_path);
-            let library_file = path.join("config/libraryfolders.vdf");
-            match library_file.is_file() {
-                false => None,
-                true => {
-                    println!("Found libraryfolders.vdf");
-                    let data = fs::read_to_string(library_file).unwrap();
-                    let vdf_parser = keyvalues_parser::parse(data.as_str()).unwrap();
-                    let libs = vdf_parser.value.get_obj()?.clone().into_vdfs();
-
-                    for lib in libs {
-                        let obj = lib.value.get_obj().unwrap();
-                        let has_app = obj
-                            .get("apps")
-                            .unwrap()
-                            .first()
-                            .unwrap()
-                            .get_obj()
-                            .unwrap()
-                            .contains_key(SYNTH_RIDERS_APP);
-                        if has_app {
-                            let library_path =
-                                obj.get("path").unwrap().first().unwrap().get_str().unwrap();
-                            let base_path = Path::new(library_path);
-                            let synth_folder = base_path
-                                .join("steamapps")
-                                .join("common")
-                                .join("SynthRiders");
-                            return match synth_folder.is_dir() {
-                                false => None,
-                                true => Some(synth_folder.to_str().unwrap().to_string()),
-                            };
-                        }
-                    }
-
-                    None
-                }
-            }
-        }
-    }
+fn register_url(app_handle: AppHandle) -> bool {
+    app_handle.deep_link().register("synthriderz").is_ok()
 }
 
 #[tauri::command]
-fn synth_id() -> &'static str {
-    SYNTH_RIDERS_APP
+fn set_synth_folder(app: AppHandle, path: &str) -> () {
+    let store = app.store("config.json").unwrap();
+    store.set("synth_folder", path);
+
+
 }
 
-#[tauri::command]
-fn register_url(app_handle: AppHandle) -> () {
-    app_handle.deep_link().register("synthriderz");
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -97,10 +37,32 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let store = app.store("config.json")?;
+
+            let value = store.get("synth_folder");
+
+            app.manage(AppState {
+                beatmaps_cache: match value {
+                    None => None,
+                    Some(field) => {
+                        match field.is_string() {
+                            false => None,
+                            true => Some(BeatmapsCache::new(field.as_str().unwrap().to_string(), String::from("beatmaps_cache")))
+                        }
+                    }
+                }
+            });
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
+            set_synth_folder,
             discover_synthriders,
             synth_id,
-            register_url
+            register_url,
+            bmc_regenerate_cache,
+            bmc_exists
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

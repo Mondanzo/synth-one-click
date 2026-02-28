@@ -7,6 +7,8 @@ import {path} from "@tauri-apps/api";
 import {download} from "@tauri-apps/plugin-upload";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {Stage} from "./synthriderz/types/stage.ts";
+import {Playlist} from "./synthriderz/types/playlist.ts";
+import {Avatar} from "./synthriderz/types/avatar.ts";
 
 const current = (await getCurrent())!.pop();
 
@@ -14,7 +16,10 @@ const url = new URL(current!);
 
 const config = inject(configKey)!;
 
+const baseSynthAPI = "https://synthriderz.com/";
+
 const assetName = ref("Undefined");
+const assetAuthor = ref("");
 const cover = ref<string | null>(null);
 const downloadProgress = ref(0);
 
@@ -84,6 +89,7 @@ async function makeDownload(url: string, filepath: string) {
   });
 }
 
+
 async function doDownload() {
   const synthFolder = await config.get("synth_folder");
   if (typeof synthFolder === "string") {
@@ -98,8 +104,11 @@ async function doDownload() {
           if (id) {
             const result = await fetch(`https://synthriderz.com/api/models/stages/${id}?join=files&join=files.file&fields=name&fields=cover_version`);
             const data = await result.json() as Stage;
+
             assetName.value = data.name;
+            assetAuthor.value = data.user.username;
             cover.value = `https://synthriderz.com/api/models/stages/${id}/cover?v=${data.cover_version}`;
+
             let filename = null;
             if (!targetFile) {
               const target = data.latest_files.filter((file) => file.platform === "pc").at(-1)!;
@@ -115,23 +124,24 @@ async function doDownload() {
               await makeDownload(`https://synthriderz.com/api/models/stages/${id}/download?file_id=${targetFile}`, savePath);
             }
           }
-        }
           break;
-
+        }
         case DownloadTypes.Avatar: {
           const id = params[0];
           if (id) {
             const result = await fetch(`https://synthriderz.com/api/models/avatars/${id}`);
-            const data = await result.json();
+            const data = await result.json() as Avatar;
             const filename = data.filename_original;
+
             assetName.value = data.name;
+            assetAuthor.value = data.user.username;
             cover.value = `https://synthriderz.com/api/models/avatars/${id}/cover?v=${data.cover_version}`;
+
             const savePath = await path.join(downloadFolder, filename);
             await makeDownload(`https://synthriderz.com/api/models/avatars/${id}/download`, savePath);
           }
-        }
           break;
-
+        }
         case DownloadTypes.Beatmap: {
           const id = params[0];
           if (id) {
@@ -146,11 +156,25 @@ async function doDownload() {
             const savePath = await path.join(downloadFolder, filename);
             await makeDownload(`https://synthriderz.com/api/beatmaps/hash/download/${id}`, savePath);
           }
+          break;
         }
+        case DownloadTypes.Playlist: {
+          const id = params[0];
+          if (id) {
+            const result = await fetch(`https://synthriderz.com/api/playlists/${id}`);
+            const data = await result.json() as Playlist;
 
+            assetName.value = data.name;
+            assetAuthor.value = data.user.username;
+            cover.value = `https://synthriderz.com/api/playlists/${id}/cover?v=${data.cover_version}`;
+
+            const savePath = await path.join(downloadFolder, data.filename_original);
+            await makeDownload(baseSynthAPI + data.download_url, savePath);
+
+
+          }
           break;
-        case DownloadTypes.Playlist:
-          break;
+        }
 
         case DownloadTypes.Undefined:
           break;
@@ -174,7 +198,9 @@ doDownload().then(() => {
   <main class="flex flex-col gap-4 justify-end items-center relative py-10">
     <div class="self-center grow place-content-center text-center">
       <p class="text-lg">Installing {{ installingWhat }}...</p>
-      <p class="text-2xl font-bold">{{ assetName }}</p></div>
+      <p class="text-2xl font-bold">{{ assetName }}</p>
+      <p v-if="assetAuthor">by {{ assetAuthor }}</p>
+    </div>
     <div class="radial-progress text-primary" :style="{'--value': downloadProgress}" :aria-valuenow="downloadProgress"
          role="progressbar">{{ downloadProgress }}
     </div>
