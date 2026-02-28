@@ -2,12 +2,11 @@ mod download;
 mod beatmaps_cache;
 mod discover_commands;
 
-use serde_json::Value;
 use discover_commands::discover_synthriders;
 use discover_commands::synth_id;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
-use tauri_plugin_store::{Store, StoreExt};
+use tauri_plugin_store::StoreExt;
 use crate::beatmaps_cache::*;
 
 struct AppState {
@@ -20,7 +19,7 @@ fn register_url(app_handle: AppHandle) -> bool {
 }
 
 #[tauri::command]
-fn set_synth_folder(app: AppHandle, path: &str) -> () {
+fn set_synth_folder(app: AppHandle, path: &str) {
     let store = app.store("config.json").unwrap();
     store.set("synth_folder", path);
 

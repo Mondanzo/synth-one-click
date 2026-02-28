@@ -1,12 +1,10 @@
-use keyvalues_parser::*;
 use std::fs;
 use std::path::Path;
-use std::str::from_utf8;
 
 #[cfg(windows)]
 use windows_registry::*;
 
-const SYNTH_RIDERS_APP: &'static str = "885000";
+const SYNTH_RIDERS_APP: &str = "885000";
 
 #[tauri::command]
 pub fn synth_id() -> &'static str {
@@ -18,10 +16,7 @@ pub fn discover_steam() -> Option<String> {
     println!("Discovering Steam");
     let collection = CURRENT_USER.open("SOFTWARE\\Valve\\Steam").unwrap();
     let synth_key = collection.get_string("SteamPath");
-    match synth_key {
-        Ok(v) => Some(v),
-        Err(_) => None,
-    }
+    synth_key.ok()
 }
 
 #[cfg(not(windows))]

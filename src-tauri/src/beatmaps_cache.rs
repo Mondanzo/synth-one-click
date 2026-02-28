@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::{fs};
-use std::fs::metadata;
 use std::path::Path;
 use std::time::SystemTime;
 use serde_json::{Error, Value};
@@ -37,8 +36,8 @@ pub async fn bmc_regenerate_cache(
     store.clear();
     for file in fs::read_dir(cache.beatmaps_path.clone()).unwrap() {
         let fo = file.unwrap();
-        if fo.file_type().unwrap().is_file() {
-            if fo.path().extension().unwrap().eq("synth") {
+        if fo.file_type().unwrap().is_file()
+            && fo.path().extension().unwrap().eq("synth") {
                 // Synth File we can create cache entry for!
                 let path = fo.path();
 
@@ -47,7 +46,6 @@ pub async fn bmc_regenerate_cache(
                 let entry = create_cache_entry_for(path.to_str().unwrap()).await;
                 store.set(cache_key.unwrap().to_str().unwrap(), serde_json::to_value(entry.clone()).unwrap());
             }
-        }
     }
 
     Ok(())
@@ -59,9 +57,9 @@ fn get_hash_from_file(file: &str) -> Option<String> {
     let fr = zip::ZipArchive::new(file);
 
     let mut zip = fr.unwrap();
-    let metaFile = zip.by_path("synthriderz.meta.json");
+    let meta_file = zip.by_path("synthriderz.meta.json");
 
-    match metaFile {
+    match meta_file {
         Err(_) => None,
         Ok(value) => {
             match value.is_file() {
@@ -84,15 +82,10 @@ fn get_hash_from_file(file: &str) -> Option<String> {
 async fn create_cache_entry_for(file: &str) -> Option<CachedData> {
     let hash = get_hash_from_file(file);
 
-    match hash {
-        None => None,
-        Some(hash) => {
-            Some(CachedData {
+    hash.map(|hash| CachedData {
                 hash,
                 last_cache: SystemTime::now()
             })
-        }
-    }
 }
 
 
@@ -104,19 +97,19 @@ pub async fn bmc_exists(
     cache: tauri::State<'_, BeatmapsCache>,
 ) -> Result<bool, ()> {
     let path = Path::new(file);
-    let fileName = path.strip_prefix(cache.beatmaps_path.clone());
-    if !fs::exists(file).is_ok() {
+    let file_name = path.strip_prefix(cache.beatmaps_path.clone());
+    if fs::exists(file).is_err() {
         return Ok(false);
     }
 
-    if fileName.is_err() {
+    if file_name.is_err() {
         return Ok(false);
     }
 
     let store = app.store(cache.cache_path.clone()).unwrap();
     let metadata = fs::metadata(file).unwrap();
 
-    let cache_key = fileName.unwrap().to_str().unwrap();
+    let cache_key = file_name.unwrap().to_str().unwrap();
 
     let cache_data: Result<CachedData, Error> = serde_json::from_value(store.get(cache_key).unwrap());
 

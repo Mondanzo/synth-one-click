@@ -1,7 +1,5 @@
 use serde::Serialize;
 use tauri::{ipc::Channel, AppHandle};
-use tauri_plugin_http::reqwest;
-use tauri_plugin_upload;
 
 #[derive(Clone, Serialize)]
 enum DownloadType {
