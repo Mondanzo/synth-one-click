@@ -2,13 +2,15 @@
 import {getCurrent} from "@tauri-apps/plugin-deep-link";
 import {fetch} from "@tauri-apps/plugin-http";
 import {configKey} from "./ConfigUtils";
-import {inject, ref} from "vue";
+import {ComponentInstance, inject, ref, useTemplateRef} from "vue";
 import {path} from "@tauri-apps/api";
 import {download} from "@tauri-apps/plugin-upload";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {Stage} from "./synthriderz/types/stage.ts";
 import {Playlist} from "./synthriderz/types/playlist.ts";
 import {Avatar} from "./synthriderz/types/avatar.ts";
+import {invoke} from "@tauri-apps/api/core";
+import Dialog from "./Dialog.vue";
 
 const current = (await getCurrent())!.pop();
 
@@ -22,6 +24,7 @@ const assetName = ref("Undefined");
 const assetAuthor = ref("");
 const cover = ref<string | null>(null);
 const downloadProgress = ref(0);
+const duplicateDialog = useTemplateRef<ComponentInstance<typeof Dialog>>("duplicate-prompt");
 
 
 enum DownloadTypes {
@@ -154,6 +157,13 @@ async function doDownload() {
 
             assetName.value = filename;
             const savePath = await path.join(downloadFolder, filename);
+            let exists = await invoke("bmc_exists", {file: savePath, hash: id});
+            let cont = true;
+
+            if (exists) {
+              await duplicateDialog.value?.open();
+            }
+
             await makeDownload(`https://synthriderz.com/api/beatmaps/hash/download/${id}`, savePath);
           }
           break;
@@ -206,6 +216,11 @@ doDownload().then(() => {
     </div>
 
   </main>
+  <Dialog :only-close="true" ref="duplicate-prompt">
+    <h1 class="text-xl font-bold">Already downloaded</h1>
+    <p>The beatmap is already downloaded and identical.</p>
+    <p>This will now redownload the beatmap.</p>
+  </Dialog>
 </template>
 
 <style scoped>

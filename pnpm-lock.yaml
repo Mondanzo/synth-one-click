@@ -32,6 +32,9 @@ importers:
       '@tauri-apps/plugin-upload':
         specifier: ~2.4.0
         version: 2.4.0
+      mitt:
+        specifier: ^3.0.1
+        version: 3.0.1
       vue:
         specifier: ^3.5.13
         version: 3.5.29(typescript@5.6.3)
@@ -765,6 +768,9 @@ packages:
     resolution: {integrity: sha512-reYkDYtj/b19TeqbNZCV4q9t+Yxylf/rYBsLb42SXJatTv4/ylq5lEiAmhA/IToxO7NI2UzNMghHoHuaqDkAjw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
+  mitt@3.0.1:
+    resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
+
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
 
@@ -1415,6 +1421,8 @@ snapshots:
   minimatch@9.0.8:
     dependencies:
       brace-expansion: 5.0.3
+
+  mitt@3.0.1: {}
 
   muggle-string@0.4.1: {}
 

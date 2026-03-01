@@ -15,6 +15,10 @@ provide("toast_container", this);
 function add(toast: Toast): void {
   console.log("Adding new toast:",toast);
   toasts.value?.push(toast);
+  setTimeout(() => {
+    let ti = toasts.value.indexOf(toast);
+    toasts.value.splice(ti, 1);
+  }, toast.duration);
 }
 
 defineExpose({"add": add});
