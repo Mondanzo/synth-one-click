@@ -7,7 +7,7 @@ import {path} from "@tauri-apps/api";
 import {download} from "@tauri-apps/plugin-upload";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {Stage} from "./synthriderz/types/stage.ts";
-import {Playlist} from "./synthriderz/types/playlist.ts";
+import {Playlist, PlaylistFile, PlaylistFileEntry} from "./synthriderz/types/playlist.ts";
 import {Avatar} from "./synthriderz/types/avatar.ts";
 import {invoke} from "@tauri-apps/api/core";
 import Dialog from "./Dialog.vue";
@@ -18,13 +18,16 @@ const url = new URL(current!);
 
 const config = inject(configKey)!;
 
-const baseSynthAPI = "https://synthriderz.com/";
+const baseSynthAPI = "https://synthriderz.com";
 
 const assetName = ref("Undefined");
 const assetAuthor = ref("");
 const cover = ref<string | null>(null);
 const downloadProgress = ref(0);
 const duplicateDialog = useTemplateRef<ComponentInstance<typeof Dialog>>("duplicate-prompt");
+const isPlaylist = ref(false);
+
+const onExistOption : number = await config?.get("existing_mode") ?? 0;
 
 
 enum DownloadTypes {
@@ -39,7 +42,8 @@ let installingWhat: DownloadTypes = DownloadTypes.Undefined;
 const targetFolder = new Map<DownloadTypes, string>([
   [DownloadTypes.Beatmap, "./SynthridersUC/CustomSongs"],
   [DownloadTypes.Stage, "./SynthridersUC/CustomStages"],
-  [DownloadTypes.Avatar, "./SynthridersUC/Avatars"]
+  [DownloadTypes.Avatar, "./SynthridersUC/Avatars"],
+  [DownloadTypes.Playlist, "./SynthridersUC/CustomPlaylists"],
 ]);
 
 const extractFilename = (contentDisposition: string) => {
@@ -86,9 +90,11 @@ switch (url.host) {
     break;
 }
 
-async function makeDownload(url: string, filepath: string) {
+async function makeDownload(url: string, filepath: string, updateProgress: boolean = true) {
   await download(url, filepath, (pr) => {
-    downloadProgress.value = Math.round(Math.min((pr.progressTotal / pr.total) * 100, 100));
+    if(updateProgress) {
+      downloadProgress.value = Math.round(Math.min((pr.progressTotal / pr.total) * 100, 100));
+    }
   });
 }
 
@@ -147,41 +153,114 @@ async function doDownload() {
         }
         case DownloadTypes.Beatmap: {
           const id = params[0];
+          let newSystem = false;
+          let hash = id;
+          if(params.length == 2) {
+            hash = params[1];
+            newSystem = true;
+          }
           if (id) {
-            const headData = await fetch(`https://synthriderz.com/api/beatmaps/hash/download/${id}`, {method: "HEAD"});
+            if(newSystem) {
+              const beatmap = await fetch(`https://synthriderz.com/api/beatmaps/${id}`);
+              const data = await beatmap.json();
+              assetName.value = data["title"] + "<br/>" + data["artist"];
+              cover.value = `https://synthriderz.com/api/beatmaps/${id}/cover?v=${data["cover_version"]}`;
+            }
+
+            const headData = await fetch(`https://synthriderz.com/api/beatmaps/hash/download/${hash}`, {method: "HEAD"});
             const filename = extractFilename(headData.headers.get("content-disposition")!);
 
             if (!filename) {
               break;
             }
 
-            assetName.value = filename;
-            const savePath = await path.join(downloadFolder, filename);
-            let exists = await invoke("bmc_exists", {file: savePath, hash: id});
-            let cont = true;
-
-            if (exists) {
-              await duplicateDialog.value?.open();
+            if(!newSystem) {
+              assetName.value = filename;
             }
 
-            await makeDownload(`https://synthriderz.com/api/beatmaps/hash/download/${id}`, savePath);
+            const savePath = await path.join(downloadFolder, filename);
+            let exists = await invoke("bmc_exists", {file: savePath, hash: id});
+            let doContinue = null;
+
+            if(onExistOption) {
+              doContinue = onExistOption === 2; // 2 means Redownload.
+            }
+
+            if (exists && doContinue === null) {
+              doContinue = await duplicateDialog.value?.open();
+            }
+
+            if(doContinue) {
+              await makeDownload(`https://synthriderz.com/api/beatmaps/hash/download/${hash}`, savePath);
+            }
           }
           break;
         }
         case DownloadTypes.Playlist: {
+          console.log("Installing playlist");
+          isPlaylist.value = true;
+
           const id = params[0];
           if (id) {
+            console.log(id);
             const result = await fetch(`https://synthriderz.com/api/playlists/${id}`);
             const data = await result.json() as Playlist;
+
+            console.log(data);
 
             assetName.value = data.name;
             assetAuthor.value = data.user.username;
             cover.value = `https://synthriderz.com/api/playlists/${id}/cover?v=${data.cover_version}`;
 
-            const savePath = await path.join(downloadFolder, data.filename_original);
+            let filename: string|null = data.filename_original;
+            if(!filename) {
+              const headData = await fetch(baseSynthAPI + data.download_url, {method: "HEAD"});
+              filename = extractFilename(headData.headers.get("content-disposition")!);
+            }
+
+            if(!filename) {
+              break;
+            }
+
+            const savePath = await path.join(downloadFolder, filename);
             await makeDownload(baseSynthAPI + data.download_url, savePath);
 
+            const playlist = (await invoke("get_playlist", {playlistFile: savePath})) as PlaylistFile|null;
+            if(playlist) {
+              const total = playlist.dataString.length;
+              for (const playlistIndex in playlist.dataString) {
+                const playlistEntry = playlist.dataString[playlistIndex];
+                const currentIdx = (playlistIndex - 0 + 1);
+                downloadProgress.value = Math.floor(currentIdx / total * 100);
+                assetName.value = playlistEntry.name + ` (${currentIdx} / ${total})`;
+                assetAuthor.value = playlistEntry.beatmapper;
 
+                const downloadUrl = baseSynthAPI + `/api/beatmaps/hash/download/${playlistEntry.hash}`;
+
+                const headData = await fetch(downloadUrl, {method: "HEAD"});
+                filename = extractFilename(headData.headers.get("content-disposition")!);
+
+                if(!filename) {
+                  break;
+                }
+
+                const savePath = await path.join(targetFolder.get(DownloadTypes.Beatmap)!, filename);
+                let exists = await invoke("bmc_exists", {file: savePath, hash: id});
+                let doContinue = null;
+
+                if(onExistOption) {
+                  doContinue = onExistOption === 2; // 2 means Redownload.
+                }
+
+                if (exists && doContinue === null) {
+                  doContinue = await duplicateDialog.value?.open();
+                }
+
+                if(doContinue) {
+                  await makeDownload(downloadUrl, savePath, true);
+                }
+              }
+            }
           }
           break;
         }
@@ -216,10 +295,18 @@ doDownload().then(() => {
     </div>
 
   </main>
-  <Dialog :only-close="true" ref="duplicate-prompt">
+  <Dialog :only-close="false" ref="duplicate-prompt">
     <h1 class="text-xl font-bold">Already downloaded</h1>
     <p>The beatmap is already downloaded and identical.</p>
     <p>This will now redownload the beatmap.</p>
+    <div v-if="isPlaylist">
+      <label>Always do this</label>
+      <input type="checkbox">
+    </div>
+    <template v-slot:actions>
+      <button class="btn btn-primary">Redownload</button>
+      <button class="btn btn-neutral">Skip</button>
+    </template>
   </Dialog>
 </template>
 

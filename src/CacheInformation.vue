@@ -36,7 +36,7 @@ async function refreshCache() {
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex items-center gap-2 justify-between">
     <p>Currently Cached: {{ cacheTotal }}<br/>Discovered files: {{filesTotal}}</p>
     <button @click="() => refreshCache()" :disabled="running" class="btn btn-info btn-outline w-fit"
             :class="{'disabled': running}">Refresh Cache.

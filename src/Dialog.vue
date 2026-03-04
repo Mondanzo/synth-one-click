@@ -39,11 +39,11 @@ defineExpose({open});
 </script>
 
 <template>
-<dialog class="modal" id="dialog-{{dialogId}}" ref="dialog_modal">
+<dialog class="modal" id="dialog-{{dialogId}}" ref="dialog_modal" @close="finish()">
   <div class="modal-box">
     <slot />
     <div class="modal-action">
-      <form method="dialog" @submit="finish()">
+      <form method="dialog">
         <button v-if="onlyClose" class="btn btn-neutral" type="submit">Continue</button>
         <slot v-else name="actions" />
       </form>

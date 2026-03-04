@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
 use crate::beatmaps_cache::*;
+use crate::download::get_playlist;
 
 #[derive(Debug)]
 struct AppState {
@@ -78,7 +79,8 @@ pub fn run() {
             bmc_regenerate_cache,
             bmc_exists,
             bmc_count,
-            bmc_files
+            bmc_files,
+            get_playlist
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

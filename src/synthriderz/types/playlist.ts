@@ -1,4 +1,5 @@
 import {User} from "./user.ts";
+import {Difficulty} from "./generic/difficulty.ts";
 
 export type Playlist = {
     id: number,
@@ -27,4 +28,27 @@ export type Playlist = {
     user: User,
     download_url: string,
     cover_url: string
+}
+
+export type PlaylistFileEntry = {
+    addedTime: number,
+    author: string,
+    beatmapper: string,
+    difficulty: Difficulty,
+    hash: string,
+    name: string,
+    trackDuration: number
+}
+
+export type PlaylistFile = {
+    SelectedIconIndex: number
+    SelectedTexture: number
+    colorTexture: string,
+    colorTitle: string,
+    creationDate: number,
+    dataString: PlaylistFileEntry[],
+    description: string
+    gradientDown: string,
+    gradientTop: string
+    namePlaylist: string
 }
