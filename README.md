@@ -1,7 +1,7 @@
-# Tauri + Vue + TypeScript
+# Synth One Click Installer
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A small utility tool to One-Click Install Custom Content from https://synthriderz.com
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## How to Install
+1. Download the tool from the [Release](https://github.com/Mondanzo/synth-one-click/releases)
+2. 
