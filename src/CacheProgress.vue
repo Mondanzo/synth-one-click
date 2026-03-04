@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {inject, onMounted, ref} from "vue";
+import {inject, ref} from "vue";
 import {CacheNewTotalEvent, CacheUpdateEvent, CacheCompletedEvent} from "./cache_event.ts";
-import {addEventListener, EventBusKey} from "./plugins/event-bus.ts";
+import {EventBusKey} from "./plugins/event-bus.ts";
 
 
 const total = ref(0);

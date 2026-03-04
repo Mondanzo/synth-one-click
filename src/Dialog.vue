@@ -8,26 +8,19 @@ const props = withDefaults(defineProps<{
   onlyClose: true,
 });
 
-const dialogId = Math.random();
-
 let resolveFunc = () => {};
-let rejectFunc = () => {};
-
 const dialogModal = useTemplateRef<HTMLDialogElement>("dialog_modal");
 
 function open(): Promise<void> {
 
   dialogModal.value?.showModal();
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _) => {
     resolveFunc = () => {
       resolve();
       resolveFunc = () => {};
     };
-    rejectFunc = () => {
-      reject();
-      rejectFunc = () => {};
-    }
   });
+
 }
 
 function finish() {
@@ -39,19 +32,15 @@ defineExpose({open});
 </script>
 
 <template>
-<dialog class="modal" id="dialog-{{dialogId}}" ref="dialog_modal" @close="finish()">
+<dialog class="modal" id="dialog" ref="dialog_modal" @close="finish()">
   <div class="modal-box">
     <slot />
     <div class="modal-action">
       <form method="dialog">
-        <button v-if="onlyClose" class="btn btn-neutral" type="submit">Continue</button>
+        <button v-if="props.onlyClose" class="btn btn-neutral" type="submit">Continue</button>
         <slot v-else name="actions" />
       </form>
     </div>
   </div>
 </dialog>
 </template>
-
-<style scoped>
-
-</style>

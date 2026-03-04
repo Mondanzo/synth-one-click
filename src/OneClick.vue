@@ -7,7 +7,7 @@ import {path} from "@tauri-apps/api";
 import {download} from "@tauri-apps/plugin-upload";
 import {getCurrentWindow} from "@tauri-apps/api/window";
 import {Stage} from "./synthriderz/types/stage.ts";
-import {Playlist, PlaylistFile, PlaylistFileEntry} from "./synthriderz/types/playlist.ts";
+import {Playlist, PlaylistFile} from "./synthriderz/types/playlist.ts";
 import {Avatar} from "./synthriderz/types/avatar.ts";
 import {invoke} from "@tauri-apps/api/core";
 import Dialog from "./Dialog.vue";
@@ -230,7 +230,7 @@ async function doDownload() {
               const total = playlist.dataString.length;
               for (const playlistIndex in playlist.dataString) {
                 const playlistEntry = playlist.dataString[playlistIndex];
-                const currentIdx = (playlistIndex - 0 + 1);
+                const currentIdx = (parseInt(playlistIndex) + 1);
                 downloadProgress.value = Math.floor(currentIdx / total * 100);
                 assetName.value = playlistEntry.name + ` (${currentIdx} / ${total})`;
                 assetAuthor.value = playlistEntry.beatmapper;
