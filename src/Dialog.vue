@@ -8,39 +8,45 @@ const props = withDefaults(defineProps<{
   onlyClose: true,
 });
 
-let resolveFunc = () => {};
+let resolveFunc = (_: string | undefined) => {
+};
 const dialogModal = useTemplateRef<HTMLDialogElement>("dialog_modal");
 
-function open(): Promise<void> {
-
+function open(): Promise<string|undefined> {
   dialogModal.value?.showModal();
   return new Promise((resolve, _) => {
-    resolveFunc = () => {
-      resolve();
-      resolveFunc = () => {};
+    resolveFunc = (data: string|undefined) => {
+      resolve(data);
+      resolveFunc = () => {
+      };
     };
   });
 
 }
 
 function finish() {
-  if(resolveFunc) resolveFunc();
+  if (resolveFunc) resolveFunc(dialogModal.value!.returnValue);
 }
 
-defineExpose({open});
+function closeWithData(data: string): void {
+  dialogModal.value!.returnValue = data;
+  dialogModal.value!.close(data);
+}
+
+defineExpose({open, closeWithData});
 
 </script>
 
 <template>
-<dialog class="modal" id="dialog" ref="dialog_modal" @close="finish()">
-  <div class="modal-box">
-    <slot />
-    <div class="modal-action">
-      <form method="dialog">
-        <button v-if="props.onlyClose" class="btn btn-neutral" type="submit">Continue</button>
-        <slot v-else name="actions" />
-      </form>
+  <dialog class="modal" id="dialog" ref="dialog_modal" @close="finish">
+    <div class="modal-box">
+      <slot/>
+      <div class="modal-action">
+        <form method="dialog" class="flex gap-3">
+          <button v-if="props.onlyClose" class="btn btn-neutral" type="submit">Continue</button>
+          <slot v-else name="actions"/>
+        </form>
+      </div>
     </div>
-  </div>
-</dialog>
+  </dialog>
 </template>

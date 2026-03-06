@@ -1,6 +1,7 @@
 mod download;
 mod beatmaps_cache;
 mod discover_commands;
+mod synthriderz;
 
 use std::path::Path;
 use discover_commands::discover_synthriders;
@@ -10,6 +11,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
 use crate::beatmaps_cache::*;
 use crate::download::get_playlist;
+
 
 #[derive(Debug)]
 struct AppState {

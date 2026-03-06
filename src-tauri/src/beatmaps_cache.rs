@@ -60,7 +60,7 @@ async fn add_entry_to_cache(
     if entry.is_some() {
         store.set(cache_key, serde_json::to_value(entry.clone()).unwrap());
     }
-    cache_channel.send(CacheEvent::CacheUpdate {});
+    cache_channel.send(CacheEvent::CacheUpdate {}).expect("Failed to send cache update, oh well.");
 }
 
 #[tauri::command]
@@ -105,15 +105,15 @@ pub async fn bmc_regenerate_cache(
                 on_cache_channel.clone(),
             ));
             futures.push(future);
-            on_cache_channel.send(CacheEvent::NewTotal { total });
+            let _ = on_cache_channel.send(CacheEvent::NewTotal { total });
         }
     }
 
     for future in futures.into_iter() {
-        future.await;
+        future.await.expect("Failed to await future.");
     }
 
-    on_cache_channel.send(CacheEvent::Completed {});
+    on_cache_channel.send(CacheEvent::Completed {}).expect("Failed to send cache completed event, oh well.");
 
     Ok(())
 }
@@ -121,6 +121,10 @@ pub async fn bmc_regenerate_cache(
 fn get_hash_from_file(file: &str) -> Option<String> {
     let file = fs::File::open(file).unwrap();
     let fr = zip::ZipArchive::new(file);
+
+    if (fr.is_err()) {
+        return None;
+    }
 
     let mut zip = fr.unwrap();
     let meta_file = zip.by_path("synthriderz.meta.json");
@@ -161,19 +165,29 @@ pub async fn bmc_exists(
         return Ok(false);
     }
 
+    println!("Obtaining cache result for {:?}", path);
+
     let bmc = bmc_o.unwrap();
 
     let file_name = path.strip_prefix(bmc.beatmaps_path.clone());
-    if fs::exists(file).is_err() {
+
+    if file_name.is_err() {
+        println!("Filename for {:?} resulted in error.", file_name);
         return Ok(false);
     }
 
-    if file_name.is_err() {
+    if fs::exists(file).is_err() {
+        println!("File {:?} does not exist.", file);
         return Ok(false);
     }
 
     let store = app.store(bmc.cache_path.clone()).unwrap();
-    let metadata = fs::metadata(file).unwrap();
+    let meta_result = fs::metadata(file);
+    if meta_result.is_err() {
+        println!("Meta result of {:?} resulted in an error.", meta_result);
+        return Ok(false);
+    }
+    let metadata = meta_result.unwrap();
 
     let cache_key = file_name.unwrap().to_str().unwrap();
 
@@ -183,32 +197,35 @@ pub async fn bmc_exists(
     match cache_data {
         Err(_) => {
             // No entry found. Try make cache entry.
-            let entry = create_cache_entry_for(file).await;
-            match entry {
-                Some(entry) => {
-                    store.set(cache_key, serde_json::to_value(entry.clone()).unwrap());
-                    Ok(entry.hash.eq(hash))
-                }
-                None => Ok(false),
-            }
+            println!("No entry found, creating cache entry.");
+            try_create_cache_entry(file, store, cache_key, hash).await
         }
         Ok(value) => {
             match value.last_cache < metadata.modified().unwrap() {
                 true => {
                     // Modified since last cache.
                     // Make new cache entry.
-                    let entry = create_cache_entry_for(file).await;
-                    match entry {
-                        Some(entry) => {
-                            store.set(cache_key, serde_json::to_value(entry.clone()).unwrap());
-                            Ok(entry.hash.eq(hash))
-                        }
-                        None => Ok(false),
-                    }
+                    println!("Last cached time is in the past.");
+                    try_create_cache_entry(file, store, cache_key, hash).await
                 }
-                false => Ok(hash.eq(&value.hash)),
+                false => {
+                    println!("Comparing hash {:?} with {:?}", hash, &value.hash);
+                    Ok(hash.eq(&value.hash))
+                },
             }
         }
+    }
+}
+
+
+pub async fn try_create_cache_entry(file: &str, store: Arc<Store<Wry>>, cache_key: &str, hash: &str) -> Result<bool, ()> {
+    let entry = create_cache_entry_for(file).await;
+    match entry {
+        Some(entry) => {
+            store.set(cache_key, serde_json::to_value(entry.clone()).unwrap());
+            Ok(entry.hash.eq(hash))
+        }
+        None => Ok(false),
     }
 }
 
@@ -221,7 +238,6 @@ pub async fn bmc_count(app: tauri::AppHandle) -> u32 {
         None => 0,
         Some(opts) => {
             let store = app.store(opts.cache_path).unwrap();
-            let file_path = Path::new(opts.beatmaps_path.as_str()).join("SynthridersUC").join("CustomSongs");
 
             let mut count: u32 = 0;
             for _ in store.keys() {

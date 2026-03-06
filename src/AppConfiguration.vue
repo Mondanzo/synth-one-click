@@ -88,6 +88,7 @@ const urlRegistered = ref();
 
 isRegistered('synthriderz').then(value => urlRegistered.value = value);
 
+invoke("bmc_")
 
 async function getDirectory() {
   const filePath = await fileOpener({

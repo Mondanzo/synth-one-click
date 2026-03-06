@@ -25,9 +25,10 @@ const assetAuthor = ref("");
 const cover = ref<string | null>(null);
 const downloadProgress = ref(0);
 const duplicateDialog = useTemplateRef<ComponentInstance<typeof Dialog>>("duplicate-prompt");
+const duplicateDialogRemeberSetting = ref(false);
 const isPlaylist = ref(false);
 
-const onExistOption : number = await config?.get("existing_mode") ?? 0;
+let onExistOption : number = await config?.get("existing_mode") ?? 0;
 
 
 enum DownloadTypes {
@@ -163,7 +164,7 @@ async function doDownload() {
             if(newSystem) {
               const beatmap = await fetch(`https://synthriderz.com/api/beatmaps/${id}`);
               const data = await beatmap.json();
-              assetName.value = data["title"] + "<br/>" + data["artist"];
+              assetName.value = data["title"] + " by " + data["artist"];
               cover.value = `https://synthriderz.com/api/beatmaps/${id}/cover?v=${data["cover_version"]}`;
             }
 
@@ -187,10 +188,11 @@ async function doDownload() {
             }
 
             if (exists && doContinue === null) {
-              doContinue = await duplicateDialog.value?.open();
+              const answer = await duplicateDialog.value?.open();
+              doContinue = answer === "redownload";
             }
 
-            if(doContinue) {
+            if(doContinue || !exists) {
               await makeDownload(`https://synthriderz.com/api/beatmaps/hash/download/${hash}`, savePath);
             }
           }
@@ -244,7 +246,8 @@ async function doDownload() {
                   break;
                 }
 
-                const savePath = await path.join(targetFolder.get(DownloadTypes.Beatmap)!, filename);
+                const savePath = await path.join(synthFolder, targetFolder.get(DownloadTypes.Beatmap)!, filename);
+                console.log("Defining save path as", savePath);
                 let exists = await invoke("bmc_exists", {file: savePath, hash: id});
                 let doContinue = null;
 
@@ -253,10 +256,14 @@ async function doDownload() {
                 }
 
                 if (exists && doContinue === null) {
-                  doContinue = await duplicateDialog.value?.open();
+                  const answer = await duplicateDialog.value?.open();
+                  doContinue = answer === "redownload";
+                  if(duplicateDialogRemeberSetting.value) {
+                    onExistOption = 2;
+                  }
                 }
 
-                if(doContinue) {
+                if(doContinue || !exists) {
                   await makeDownload(downloadUrl, savePath, true);
                 }
               }
@@ -275,7 +282,7 @@ async function doDownload() {
 doDownload().then(() => {
   setTimeout(() => {
     const window = getCurrentWindow();
-    window.close();
+    // window.close();
   }, 2000);
 })
 </script>
@@ -301,11 +308,11 @@ doDownload().then(() => {
     <p>This will now redownload the beatmap.</p>
     <div v-if="isPlaylist">
       <label>Always do this</label>
-      <input type="checkbox">
+      <input type="checkbox" v-model="duplicateDialogRemeberSetting">
     </div>
     <template v-slot:actions>
-      <button class="btn btn-primary">Redownload</button>
-      <button class="btn btn-neutral">Skip</button>
+      <button class="btn btn-primary" type="button" @click.prevent="() => { duplicateDialog?.closeWithData('redownload') }">Redownload</button>
+      <button class="btn btn-neutral" type="button" @click.prevent="() => { console.log('skip'); duplicateDialog?.closeWithData('skip') }">Skip</button>
     </template>
   </Dialog>
 </template>

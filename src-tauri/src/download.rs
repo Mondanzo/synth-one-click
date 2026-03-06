@@ -3,6 +3,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 use tauri::{command, ipc::Channel, AppHandle};
+use crate::synthriderz::playlist::PlaylistStruct;
 
 #[derive(Clone, Serialize)]
 enum DownloadType {
@@ -38,30 +39,7 @@ fn download(app: AppHandle, url: String, folder: String, on_event: Channel<Downl
 }
 
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct PlaylistStruct {
-    dataString: Vec<PlaylistEntry>,
-    SelectedIconIndex: u8,
-    SelectedTexture: u8,
-    namePlaylist: String,
-    description: String,
-    gradientTop: String,
-    gradientDown: String,
-    colorTitle: String,
-    colorTexture: String,
-    creationDate: u64
-}
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct PlaylistEntry {
-    hash: String,
-    name: String,
-    author: String,
-    beatmapper: String,
-    difficulty: u8,
-    trackDuration: f32,
-    addedTime: u64,
-}
 
 
 #[command]
@@ -75,8 +53,6 @@ pub fn get_playlist(playlist_file: String) -> Option<PlaylistStruct> {
                 true => {
                     println!("Found Playlist file.");
                     let data: Result<PlaylistStruct, Error> = serde_json::from_reader(fs::File::open(playlist_file).unwrap());
-
-                    println!("{:?}", data);
 
                     match data {
                         Err(_) => None,
