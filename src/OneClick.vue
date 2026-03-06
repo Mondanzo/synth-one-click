@@ -180,7 +180,7 @@ async function doDownload() {
             }
 
             const savePath = await path.join(downloadFolder, filename);
-            let exists = await invoke("bmc_exists", {file: savePath, hash: id});
+            let exists = await invoke("bmc_exists", {file: savePath, hash});
             let doContinue = null;
 
             if(onExistOption) {
@@ -204,11 +204,8 @@ async function doDownload() {
 
           const id = params[0];
           if (id) {
-            console.log(id);
             const result = await fetch(`https://synthriderz.com/api/playlists/${id}`);
             const data = await result.json() as Playlist;
-
-            console.log(data);
 
             assetName.value = data.name;
             assetAuthor.value = data.user.username;
@@ -228,6 +225,7 @@ async function doDownload() {
             await makeDownload(baseSynthAPI + data.download_url, savePath);
 
             const playlist = (await invoke("get_playlist", {playlistFile: savePath})) as PlaylistFile|null;
+            console.log(playlist);
             if(playlist) {
               const total = playlist.dataString.length;
               for (const playlistIndex in playlist.dataString) {
@@ -248,7 +246,7 @@ async function doDownload() {
 
                 const savePath = await path.join(synthFolder, targetFolder.get(DownloadTypes.Beatmap)!, filename);
                 console.log("Defining save path as", savePath);
-                let exists = await invoke("bmc_exists", {file: savePath, hash: id});
+                let exists = await invoke("bmc_exists", {file: savePath, hash: playlistEntry.hash});
                 let doContinue = null;
 
                 if(onExistOption) {
@@ -282,7 +280,7 @@ async function doDownload() {
 doDownload().then(() => {
   setTimeout(() => {
     const window = getCurrentWindow();
-    // window.close();
+    window.close();
   }, 2000);
 })
 </script>

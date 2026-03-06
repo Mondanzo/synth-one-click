@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Error, Value};
 use std::fs;
 use std::fs::DirEntry;
+use std::ops::Sub;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use tauri::ipc::Channel;
 use tauri::{Manager, Wry};
 use tauri_plugin_store::{Store, StoreExt};
@@ -122,7 +123,7 @@ fn get_hash_from_file(file: &str) -> Option<String> {
     let file = fs::File::open(file).unwrap();
     let fr = zip::ZipArchive::new(file);
 
-    if (fr.is_err()) {
+    if fr.is_err() {
         return None;
     }
 
@@ -165,26 +166,21 @@ pub async fn bmc_exists(
         return Ok(false);
     }
 
-    println!("Obtaining cache result for {:?}", path);
-
     let bmc = bmc_o.unwrap();
 
     let file_name = path.strip_prefix(bmc.beatmaps_path.clone());
 
     if file_name.is_err() {
-        println!("Filename for {:?} resulted in error.", file_name);
         return Ok(false);
     }
 
     if fs::exists(file).is_err() {
-        println!("File {:?} does not exist.", file);
         return Ok(false);
     }
 
     let store = app.store(bmc.cache_path.clone()).unwrap();
     let meta_result = fs::metadata(file);
     if meta_result.is_err() {
-        println!("Meta result of {:?} resulted in an error.", meta_result);
         return Ok(false);
     }
     let metadata = meta_result.unwrap();
@@ -197,7 +193,6 @@ pub async fn bmc_exists(
     match cache_data {
         Err(_) => {
             // No entry found. Try make cache entry.
-            println!("No entry found, creating cache entry.");
             try_create_cache_entry(file, store, cache_key, hash).await
         }
         Ok(value) => {
@@ -205,11 +200,9 @@ pub async fn bmc_exists(
                 true => {
                     // Modified since last cache.
                     // Make new cache entry.
-                    println!("Last cached time is in the past.");
                     try_create_cache_entry(file, store, cache_key, hash).await
                 }
                 false => {
-                    println!("Comparing hash {:?} with {:?}", hash, &value.hash);
                     Ok(hash.eq(&value.hash))
                 },
             }

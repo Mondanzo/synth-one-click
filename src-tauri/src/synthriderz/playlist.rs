@@ -6,6 +6,7 @@ pub struct PlaylistStruct {
     data_string: Vec<PlaylistEntry>,
     #[serde(rename = "SelectedIconIndex")]
     selected_icon_index: u8,
+    #[serde(rename = "SelectedTexture")]
     selected_texture: u8,
     name_playlist: String,
     description: String,
